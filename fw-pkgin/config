@@ -51,9 +51,6 @@ FW_RPM_POSTCREATEREPO_COMMANDS=${FW_RPM_POSTCREATEREPO_COMMANDS-"true"}
 # here's a suggestion:
 # FW_RPM_POSTCREATEREPO_COMMANDS="gpg --detach-sign --armor repodata/repomd.xml" 
 
-# set to the directory in which version-named tags will be created
-FW_SUBVERSION_TAG_ROOT="https://mondemand.svn.sourceforge.net/svnroot/mondemand/mondemand-riak/tags"
-
 # uncomment and set manually if you want the application name to be different
 # from FW_PACKAGE_NAME, application name must consist of characters [a-zA-Z_]
 FW_ERL_APP_NAME="mondriak"
