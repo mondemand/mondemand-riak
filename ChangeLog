@@ -1,2 +1,5 @@
+Version 0.1.0 (molinaro)
+  * Allow mondemand prog_id to be changed via an application variable
+
 Version 0.0.0 (molinaro)
   * initial version

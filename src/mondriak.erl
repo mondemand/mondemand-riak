@@ -17,8 +17,9 @@
             terminate/2,
             code_change/3 ]).
 
--record (state, {interval}).
+-record (state, {interval, prog_id}).
 -define (DEFAULT_INTERVAL, 60000).
+-define (DEFAULT_PROG_ID, riak).
 
 %%====================================================================
 %% API
@@ -30,16 +31,25 @@
 start_link() ->
   gen_server:start_link ({local, ?MODULE}, ?MODULE, [], []).
 
+program_id () ->
+  case application:get_env (mondriak, prog_id) of
+    {ok, I} -> I;
+    _ -> ?DEFAULT_PROG_ID
+  end.
+
+emit_interval () ->
+  case application:get_env (mondriak, emit_interval) of
+    { ok, I } -> I;
+    _ -> ?DEFAULT_INTERVAL
+  end.
+
 %%====================================================================
 %% gen_server callbacks
 %%====================================================================
 init([]) ->
-  Interval =
-    case application:get_env (mondriak, emit_interval) of
-      { ok, I } -> I;
-      _ -> ?DEFAULT_INTERVAL
-    end,
-  { ok, #state{ interval = Interval }, Interval }.
+  Interval = emit_interval (),
+  ProgId = program_id (),
+  { ok, #state{ interval = Interval, prog_id = ProgId }, Interval }.
 
 handle_call (_Request, _From, State = #state { interval = Interval }) ->
   {reply, ok, State, Interval}.
@@ -47,8 +57,9 @@ handle_call (_Request, _From, State = #state { interval = Interval }) ->
 handle_cast (_Request, State = #state { interval = Interval }) ->
   {noreply, State, Interval}.
 
-handle_info (timeout, State = #state { interval = Interval }) ->
-  mondemand:send_stats (riak,
+handle_info (timeout, State = #state { interval = Interval,
+                                       prog_id = ProgId }) ->
+  mondemand:send_stats (ProgId,
                         [],
                         lists:foldl (fun ( { K = vnode_gets_total, X }, A) ->
                                            [ { counter, K, X } | A ];
