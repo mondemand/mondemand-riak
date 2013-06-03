@@ -7,7 +7,8 @@
 -behaviour (gen_server).
 
 %% API
--export ( [ start_link/0 ]).
+-export ( [ start_link/0,
+            repl_stats/1 ]).
 
 %% gen_server callbacks
 -export ( [ init/1,
@@ -80,6 +81,13 @@ handle_info (timeout, State = #state { interval = Interval,
                                      end,
                                      [],
                                      riak_kv_status:statistics())),
+  case code:which (riak_repl2_rtq) of
+    non_existing -> ok;
+    _ ->
+      mondemand:send_stats (ProgId,
+                            [],
+                            repl_stats (riak_repl2_rtq:status()))
+  end,
   {noreply, State, Interval};
 handle_info (_Info, State = #state { interval = Interval }) ->
   {noreply, State, Interval}.
@@ -93,7 +101,27 @@ code_change (_OldVsn, State, _Extra) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+repl_stats (Stats) ->
+  repl_stats (Stats, []).
 
+repl_stats ([],Accum) ->
+  Accum;
+repl_stats ([{bytes,Bytes}|Rest], Accum) ->
+  repl_stats (Rest, [ { gauge, rtq_bytes, Bytes } | Accum ]);
+repl_stats ([{max_bytes,Bytes}|Rest], Accum) ->
+  repl_stats (Rest, [ { gauge, rtq_max_bytes, Bytes } | Accum ]);
+repl_stats ([{consumers, Consumers }|Rest], Accum) ->
+  repl_stats (Rest, repl_consumers (Consumers,[]) ++ Accum);
+repl_stats ([_|Rest], Accum) ->
+  repl_stats (Rest, Accum).
+
+repl_consumers ([], Accum) ->
+  Accum;
+repl_consumers ([{K, V}|Rest],Accum) ->
+  repl_consumers (Rest, [ { gauge, atom_to_list(SK) ++ "-" ++ K, SV }
+                          || { SK, SV }
+                          <- V
+                        ] ++ Accum).
 
 %%--------------------------------------------------------------------
 %%% Test functions
