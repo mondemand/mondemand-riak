@@ -88,6 +88,19 @@ handle_info (timeout, State = #state { interval = Interval,
                             [],
                             repl_stats (riak_repl2_rtq:status()))
   end,
+  case code:which (riak_repl_stats) of
+    non_existing -> ok;
+    _ ->
+      mondemand:send_stats (ProgId,
+                            [],
+                            lists:foldl (fun ({K,X}, A) when is_integer (X) ->
+                                               [ { counter, K, X } | A ] ;
+                                             (_, A) ->
+                                               A
+                                         end,
+                                         [],
+                                         riak_repl_stats:get_stats()))
+  end,
   {noreply, State, Interval};
 handle_info (_Info, State = #state { interval = Interval }) ->
   {noreply, State, Interval}.

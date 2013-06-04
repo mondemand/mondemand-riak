@@ -1,3 +1,6 @@
+Version 0.3.0 (molinaro)
+  * added a few other stats from repl in riak-ee
+
 Version 0.2.0 (molinaro)
   * if riak-ee is installed send realtime queue stats
 
