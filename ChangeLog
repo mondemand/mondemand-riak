@@ -1,3 +1,6 @@
+Version 0.4.0 (molinaro)
+  * added some more replication stats available in riak-ee
+
 Version 0.3.0 (molinaro)
   * added a few other stats from repl in riak-ee
 
