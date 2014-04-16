@@ -81,6 +81,7 @@ send_if_exists (Module, Function, ProcessFunc, ProgId) ->
   case code:which (Module) of
     non_existing -> ok;
     _ ->
+      code:ensure_loaded (Module),
       case erlang:function_exported (Module, Function, 0) of
         false -> ok;
         true ->

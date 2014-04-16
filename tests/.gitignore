@@ -1,7 +1,7 @@
-
 *.COVER.out
 *.beam
 *.in
+*.log
 *.test.out
 .*.app_ok
 .*.beam_ok
