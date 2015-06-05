@@ -1,3 +1,6 @@
+Version 0.6.1 (molinaro)
+  * riak core stats were being double counted, so just use the kv stats
+
 Version 0.6.0 (molinaro)
   * support Riak V2 stats changes
 

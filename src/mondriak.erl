@@ -118,6 +118,10 @@ riak_kv_stats (Stats) ->
                      [ { counter, K, X } | A ];
                    ( { K = read_repairs_total, X }, A) ->
                      [ { counter, K, X } | A ];
+                   ( { K = riak_pipe_vnodes_running, X }, A) ->
+                     [ { counter, K, X } | A ];
+                   ( { K = riak_kv_vnodes_running, X }, A) ->
+                     [ { counter, K, X } | A ];
                    ( { K, X }, A) when is_integer (X) ->
                      [ { gauge, K, X } | A ] ;
                    ( { K, X }, A) when is_float (X) ->
@@ -171,6 +175,9 @@ riak_core_stats ([{K = riak_kv_vnodes_running,V} | Rest ], Accum) ->
   riak_core_stats (Rest, [ {counter, K, V} | Accum ]);
 riak_core_stats ([{K = riak_pipe_vnodes_running,V} | Rest ], Accum) ->
   riak_core_stats (Rest, [ {counter, K, V} | Accum ]);
+% NOTE: riak_core stats are also in the riak_kv stats call for V2, so they
+%       are all ignored here
+%
 % V2 changed the core stats pretty dramatically, so working around and only
 % capturing those which seem useful
 %
@@ -182,26 +189,19 @@ riak_core_stats ([{[riak,riak_core,vnodeq,_,_],_} | Rest ], Accum) ->
   riak_core_stats (Rest, Accum);
 
 % a few which have special forms
-% 
+%
 % these seem to have the form
-% {[riak,riak_core,rings_reconciled],[{count,471},{one,0}]},
-riak_core_stats ([{[riak,riak_core,K], V} | Rest ], Accum)
-  when K =:= gossip_received;
-       K =:= rings_reconciled ->
-  riak_core_stats (Rest, [ riak_core_gauge (K, count, V) | Accum ]);
-% and these the form
+%
+%   {[riak,riak_core,rings_reconciled],[{count,471},{one,0}]},
+%
+% or this one
+%
 %  {[riak,riak_core,rejected_handoffs],[{value,0},{ms_since_reset,1744058941}]},
 %  {[riak,riak_core,ring_creation_size],[{value,256}]},
-riak_core_stats ([{[riak,riak_core,K], V} | Rest ],
-                 Accum) when K =:= handoff_timeouts;
-                             K =:= rejected_handoffs;
-                             K =:= ring_creation_size ->
-  riak_core_stats (Rest, [riak_core_gauge (K, value, V) | Accum ]);
-riak_core_stats ([{[riak,riak_core,K], V} | Rest ],
-                 Accum) when K =:= dropped_vnode_requests_total;
-                             K =:= ignored_gossip_total ->
-  riak_core_stats (Rest, [riak_core_counter (K, value, V) | Accum ]);
-
+%
+% but they also appear in the riak_kv_status:statistics() as gauges, so letting
+% them be counted there and skip here
+%
 % and some which used to have the form
 %   {converge_delay_min,0},
 %   {converge_delay_max,0},
@@ -222,57 +222,12 @@ riak_core_stats ([{[riak,riak_core,K], V} | Rest ],
 %          {95,0},
 %          {99,0},
 %          {999,0}]},
-riak_core_stats ([{[riak,riak_core,K],V} | Rest ], Accum) ->
-  riak_core_stats (Rest, [ riak_core_gauge (K, min, V),
-                           riak_core_gauge (K, max, V),
-                           riak_core_gauge (K, mean, V),
-                           riak_core_gauge (K, last, V) | Accum ]);
-riak_core_stats ([{[riak,riak_core,vnodes_running,riak_pipe_vnode], V} | Rest],
-                 Accum) ->
-  riak_core_stats (Rest, [ riak_core_counter (riak_pipe_vnodes_running, value, V)
-                           | Accum ]);
-riak_core_stats ([{[riak,riak_core,vnodeq,riak_pipe_vnode], V} | Rest],
-                 Accum) ->
-  riak_core_stats (Rest, [ riak_core_gauge (riak_pipe_vnodeq_total, total, V),
-                           riak_core_gauge (riak_pipe_vnodeq_total, max, V),
-                           riak_core_gauge (riak_pipe_vnodeq_total, mean, V),
-                           riak_core_gauge (riak_pipe_vnodeq_total, median, V),
-                           riak_core_gauge (riak_pipe_vnodeq_total, min, V)
-                           | Accum ]);
-
-riak_core_stats ([{[riak,riak_core,vnodes_running,riak_kv_vnode], V} | Rest],
-                 Accum) ->
-  riak_core_stats (Rest, [ riak_core_counter (riak_kv_vnodes_running, value, V)
-                           | Accum ]);
-riak_core_stats ([{[riak,riak_core,vnodeq,riak_kv_vnode], V} | Rest],
-                 Accum) ->
-  riak_core_stats (Rest, [ riak_core_gauge (riak_kv_vnodeq_total, total, V),
-                           riak_core_gauge (riak_kv_vnodeq_total, max, V),
-                           riak_core_gauge (riak_kv_vnodeq_total, mean, V),
-                           riak_core_gauge (riak_kv_vnodeq_total, median, V),
-                           riak_core_gauge (riak_kv_vnodeq_total, min, V)
-                           | Accum ]);
-
+riak_core_stats ([{[riak,riak_core,_],_} | Rest ], Accum) ->
+  riak_core_stats (Rest, Accum);
+riak_core_stats ([{[riak,riak_core,_,_], _} | Rest], Accum) ->
+  riak_core_stats (Rest, Accum);
 riak_core_stats ([{K,V} | Rest ], Accum) ->
   riak_core_stats (Rest, [ {gauge, K, V} | Accum ]).
-
-riak_core_counter (K, SK, PL) -> riak_core_sub (counter, K, SK, PL).
-riak_core_gauge (K, SK, PL) -> riak_core_sub (gauge, K, SK, PL).
-
-riak_core_sub (T, K, SK, PL) ->
-  FinalK =
-    case SK of
-      K1 when K1 =:= count; K1 =:= value -> K;
-      _ -> list_to_atom (atom_to_list (K) ++ "_" ++ atom_to_list (SK))
-    end,
-
-  FinalV =
-    case proplists:get_value (SK, PL, 0) of
-      F when is_float (F) -> trunc (F);
-      V -> V
-    end,
-
-  { T, FinalK, FinalV }.
 
 riak_repl_stats (Stats) ->
   lists:foldl (fun ({K,X}, A) when is_integer (X) ->
