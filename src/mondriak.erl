@@ -100,9 +100,10 @@ send_if_exists (Module, Function, ProcessFunc, ProgId) ->
       case erlang:function_exported (Module, Function, 0) of
         false -> ok;
         true ->
-          mondemand:send_stats (ProgId,
-                                [],
-                                ProcessFunc (Module:Function ()))
+          case ProcessFunc (Module:Function ()) of
+            [] -> ok;
+            Stats -> mondemand:send_stats (ProgId, [], Stats)
+          end
       end
   end.
 

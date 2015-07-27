@@ -1,3 +1,6 @@
+Version 0.6.2 (molinaro)
+  * empty stats events are useless, so skip sending them.
+
 Version 0.6.1 (molinaro)
   * riak core stats were being double counted, so just use the kv stats
 
