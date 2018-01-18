@@ -1,7 +1,10 @@
 # The FW_PACKAGE_MAINTAINER field is populated with the environment
 # variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty at init time
 
-FW_PACKAGE_NAME="mondemand-riak"
+ERLANG_VERSION=$(erl -eval 'io:format("~s", [ erlang:system_info(otp_release) ]), halt().'  -noshell)
+BUILD_PREFIX=erlang-$(perl -e '$ARGV[0] =~ m/^(R?\d+[A-Z]*)/i and print lc($1) or die "$ARGV[0]";' "$ERLANG_VERSION")-
+
+FW_PACKAGE_NAME="${BUILD_PREFIX}mondemand-riak"
 FW_PACKAGE_VERSION="0.6.2"
 FW_PACKAGE_MAINTAINER="mondemand-devel@lists.sourceforge.net"
 FW_PACKAGE_SHORT_DESCRIPTION="Send Riak Statistics to Mondemand"
@@ -14,13 +17,13 @@ FW_PACKAGE_ARCHITECTURE_DEPENDENT="1"
 # 
 # For other packaging systems, the syntax is translated for you.
 
-FW_PACKAGE_DEPENDS="mondemand-erlang"
+FW_PACKAGE_DEPENDS="${BUILD_PREFIX}mondemand"
 FW_PACKAGE_CONFLICTS=""
 FW_PACKAGE_PROVIDES=""
 FW_PACKAGE_REPLACES=""
 FW_PACKAGE_SUGGESTS=""
 
-FW_PACKAGE_BUILD_DEPENDS="mondemand-erlang"
+FW_PACKAGE_BUILD_DEPENDS="${FW_PACKAGE_DEPENDS}"
 FW_PACKAGE_BUILD_CONFLICTS=""
 
 # dupload is used for submitting debian packages to a package archive
